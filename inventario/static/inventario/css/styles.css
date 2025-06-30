@@ -1,0 +1,249 @@
+/* archivo: static/inventario/css/styles.css */
+
+/* ===============================
+   Variables de color
+   =============================== */
+:root {
+  --brand-primary: #0056b3;
+  --brand-secondary: #6c757d;
+  --brand-success: #28a745;
+  --brand-warning: #ffc107;
+  --brand-danger:  #dc3545;
+  --brand-info:    #17a2b8;
+  --light-bg:      #f8f9fa;
+  --dark-bg:       #343a40;
+  --text-base:     #212529;
+  --text-muted:    #6c757d;
+  --table-border:  #dee2e6;
+  --stripe-bg:     rgba(0, 0, 0, 0.03);
+}
+
+/* ===============================
+   Reset y tipografía base
+   =============================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--light-bg);
+  color: var(--text-base);
+  line-height: 1.6;
+}
+
+/* ===============================
+   Navbar personalizado
+   =============================== */
+.navbar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.nav-link {
+  font-weight: 500;
+}
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+/* ===============================
+   Contenedor principal
+   =============================== */
+.container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* ===============================
+   Titulares
+   =============================== */
+h1, h2, h3 {
+  color: var(--brand-primary);
+  margin-bottom: 1rem;
+}
+
+h1 {
+  font-size: 2.25rem;
+  border-bottom: 3px solid var(--brand-primary);
+  padding-bottom: 0.5rem;
+}
+
+/* ===============================
+   Tablas: estilo avanzado
+   =============================== */
+.table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table thead th {
+  background-color: var(--brand-primary);
+  color: #ffffff;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+  border: none;
+}
+
+.table th, .table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--table-border);
+  vertical-align: middle;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--stripe-bg);
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--brand-info);
+  color: #fff;
+}
+
+/* ===============================
+   Botones estilizados
+   =============================== */
+.btn {
+  border-radius: 2rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: filter 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--brand-primary);
+  border: none;
+}
+.btn-success {
+  background-color: var(--brand-success);
+  border: none;
+}
+.btn-warning {
+  background-color: var(--brand-warning);
+  border: none;
+}
+.btn-danger {
+  background-color: var(--brand-danger);
+  border: none;
+}
+.btn-info {
+  background-color: var(--brand-info);
+  border: none;
+}
+
+.btn:hover {
+  filter: brightness(1.1);
+}
+
+/* ===============================
+   Alertas destacadas
+   =============================== */
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+.alert-danger {
+  background-color: var(--brand-danger);
+  color: #fff;
+}
+.alert-success {
+  background-color: var(--brand-success);
+  color: #fff;
+}
+
+/* ===============================
+   Formularios (admin y front)
+   =============================== */
+.form-control, .form-select {
+  border-radius: 0.25rem;
+  box-shadow: none;
+  border: 1px solid var(--table-border);
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* ===============================
+   Pie de página ligero
+   =============================== */
+footer {
+  text-align: center;
+  padding: 1rem 0;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+
+/* ===== Estilos para signup ===== */
+.registration-container {
+  max-width: 400px;
+  margin: 60px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.registration-container h2 {
+  font-size: 1.75rem;
+  color: #333;
+}
+
+.registration-container .form-control {
+  border-radius: 4px;
+}
+
+#password-match {
+  position: absolute;
+  top: 100%;
+  left: 0;
+}
+
+
+/* ===== Estilos para login ===== */
+.login-container {
+  max-width: 360px;
+  margin: 80px auto;
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.login-container h2 {
+  font-size: 1.75rem;
+  color: #333;
+}
+
+.position-relative button#toggle-pwd {
+  border: none;
+  background: transparent;
+  font-size: 0.85rem;
+}
+
+/* === Form Crear/Editar Elemento === */
+.form-container {
+  max-width: 600px;
+  margin: 40px auto;
+}
+.card-header h3 {
+  font-size: 1.5rem;
+}

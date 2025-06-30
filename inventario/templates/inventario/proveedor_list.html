@@ -1,0 +1,15 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+  <h2>Proveedores</h2>
+  <a href="{% url 'inventario:proveedor_create' %}" class="btn btn-primary mb-3">Nuevo Proveedor</a>
+  <table class="table">
+    <thead><tr><th>Nombre</th><th>Contacto</th></tr></thead>
+    <tbody>
+      {% for p in proveedores %}
+        <tr><td>{{ p.nombre }}</td><td>{{ p.contacto }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2">No hay proveedores.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

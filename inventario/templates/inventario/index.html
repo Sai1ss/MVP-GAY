@@ -1,0 +1,106 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Listado de Inventario</h1>
+    <div>
+      {% if is_gestor %}
+        <a href="{% url 'inventario:elemento_create' %}" class="btn btn-primary me-2">
+          Nuevo Elemento
+        </a>
+      {% endif %}
+      {% if is_comprador %}
+        <a href="{% url 'inventario:recepcion_create' %}" class="btn btn-success">
+          Registrar Compra
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if is_admin %}
+    <!-- Dropdown de usuarios y roles -->
+    <div class="dropdown mb-4">
+      <button class="btn btn-outline-primary dropdown-toggle" 
+              type="button" id="usuariosDropdown" data-bs-toggle="dropdown" 
+              aria-expanded="false">
+        Usuarios y Roles
+      </button>
+      <ul class="dropdown-menu" aria-labelledby="usuariosDropdown" style="max-height:300px; overflow:auto;">
+        {% for u in usuarios %}
+          <li class="px-3 py-2">
+            <div>
+              <strong>{{ u.username }}</strong>
+              {% if u.is_superuser %}
+                <span class="badge bg-dark ms-1">Superuser</span>
+              {% endif %}
+              {% if u.groups.all %}
+                {% for g in u.groups.all %}
+                  <span class="badge bg-secondary ms-1">{{ g.name }}</span>
+                {% endfor %}
+              {% else %}
+                <span class="text-muted ms-1">Sin rol</span>
+              {% endif %}
+            </div>
+            <div class="small text-muted">
+              {{ u.email }}
+            </div>
+          </li>
+          {% if not forloop.last %}
+            <li><hr class="dropdown-divider"></li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if alertas %}
+    <div class="alert alert-danger">
+      <strong>¡Alerta!</strong> Hay {{ alertas.count }} elemento(s) con stock bajo.
+    </div>
+  {% endif %}
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nombre</th>
+          <th>N. Serie</th>
+          <th>Stock Actual</th>
+          <th>Stock Mínimo</th>
+          <th>Ubicación</th>
+          <th class="text-center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in elementos %}
+          <tr>
+            <td>{{ e.nombre }}</td>
+            <td>{{ e.numero_serie }}</td>
+            <td>
+              {{ e.stock_actual }}
+              {% if e.stock_actual <= e.stock_minimo %}
+                <span class="badge bg-danger ms-1">Bajo</span>
+              {% endif %}
+            </td>
+            <td>{{ e.stock_minimo }}</td>
+            <td>{{ e.ubicacion }}</td>
+            <td class="text-center">
+              {% if is_gestor %}
+                <a href="{% url 'inventario:elemento_update' e.pk %}" class="btn btn-sm btn-warning me-1">Editar</a>
+                <a href="{% url 'inventario:elemento_delete' e.pk %}" class="btn btn-sm btn-danger me-1">Borrar</a>
+              {% endif %}
+              {% if is_admin %}
+                <a href="{% url 'inventario:proveedor_list' %}" class="btn btn-sm btn-info">Proveedores</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4">No hay elementos registrados.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
