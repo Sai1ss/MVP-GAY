@@ -1,0 +1,18 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+  <h2>Nueva Orden de Compra</h2>
+  <form method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <h4>Líneas</h4>
+    {{ formset.management_form }}
+    {% for subform in formset %}
+      <div class="border p-2 mb-2">
+        {{ subform.as_p }}
+        {% if subform.instance.pk %}
+          <label>{{ subform.DELETE }} Eliminar</label>
+        {% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-success">Guardar OC</button>
+  </form>
+{% endblock %}

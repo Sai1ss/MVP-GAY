@@ -93,4 +93,11 @@ urlpatterns = [
     path('asignaciones/<int:pk>/liberar/', views.asignacion_liberar, name='asignacion_liberar'),
     path('asignaciones/<int:pk>/cancelar/', views.asignacion_cancelar, name='asignacion_cancelar'),
     path('asignaciones/<int:pk>/consumir/', views.asignacion_consumir, name='asignacion_consumir'),
+
+    #compras
+    path('ordenes-compra/',             views.orden_compra_list,   name='orden_compra_list'),
+    path('ordenes-compra/nueva/',       views.orden_compra_create, name='orden_compra_create'),
+    path('ordenes-compra/<int:pk>/',    views.orden_compra_detail, name='orden_compra_detail'),
+    path('ordenes-compra/<int:pk>/recibir/', views.orden_compra_receive, name='orden_compra_receive'),
+
 ]
