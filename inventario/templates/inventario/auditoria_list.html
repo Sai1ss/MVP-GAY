@@ -1,0 +1,69 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Auditorías de Inventario</h2>
+    <div class="d-flex gap-2">
+      <a href="{% url 'inventario:auditoria_create' %}" class="btn btn-primary">Nueva Auditoría</a>
+      <a href="#" class="btn btn-outline-secondary" title="Exportar historial" disabled>Exportar</a>
+    </div>
+  </div>
+  <table class="table table-bordered table-striped table-sm">
+    <thead class="table-dark">
+      <tr>
+        <th style="width: 20%;">Elemento</th>
+        <th style="width: 10%;">Stock Sistema</th>
+        <th style="width: 10%;">Stock Físico</th>
+        <th style="width: 8%;">Diferencia</th>
+        <th style="width: 12%;">Fecha</th>
+        <th style="width: 12%;">Auditor</th>
+        <th style="width: 18%;">Observaciones</th>
+        <th style="width: 10%;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for auditoria in auditorias %}
+        <tr>
+          <td>{{ auditoria.elemento.nombre }}</td>
+          <td>{{ auditoria.stock_sistema }}</td>
+          <td>{{ auditoria.stock_fisico }}</td>
+          <td>
+            {% if auditoria.diferencia == 0 %}
+              <span class="badge bg-success" title="Sin diferencia">0</span>
+            {% elif auditoria.diferencia > 0 %}
+              <span class="badge bg-warning" title="Faltante en físico">+{{ auditoria.diferencia }}</span>
+            {% else %}
+              <span class="badge bg-danger" title="Sobrante en físico">{{ auditoria.diferencia }}</span>
+            {% endif %}
+          </td>
+          <td>{{ auditoria.fecha_auditoria|date:"d/m/Y H:i" }}</td>
+          <td>{{ auditoria.auditor.username }}</td>
+          <td>
+            {% if auditoria.observaciones %}
+              <small class="text-muted">{{ auditoria.observaciones|truncatechars:50 }}</small>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if es_admin or es_gestor %}
+              <a href="{% url 'inventario:auditoria_edit' auditoria.id %}" class="btn btn-warning text-white me-1" style="min-width: 80px;">
+                <i class="fas fa-edit me-1"></i>Editar
+              </a>
+              <a href="{% url 'inventario:auditoria_eliminar' auditoria.id %}" class="btn btn-danger text-white" style="min-width: 80px;">
+                <i class="fas fa-trash me-1"></i>Eliminar
+              </a>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="8" class="text-center text-muted">No hay auditorías registradas</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %} 

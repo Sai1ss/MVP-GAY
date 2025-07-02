@@ -1,0 +1,85 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>{% if is_gestor %}Solicitudes de Materiales{% else %}Mis Solicitudes de Materiales{% endif %}</h2>
+    <a href="{% url 'inventario:solicitud_create' %}" class="btn btn-primary">Nueva Solicitud</a>
+  </div>
+  
+  <form method="get" class="row g-3 mb-3">
+    <div class="col-md-3">
+      <select name="estado" class="form-select">
+        <option value="">Todos los estados</option>
+        <option value="pendiente">Pendiente</option>
+        <option value="aprobada">Aprobada</option>
+        <option value="rechazada">Rechazada</option>
+        <option value="entregada">Entregada</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <input type="text" name="proyecto" class="form-control" placeholder="Filtrar por proyecto">
+    </div>
+    <div class="col-md-3">
+      <button type="submit" class="btn btn-outline-primary w-100">Filtrar</button>
+    </div>
+  </form>
+  
+  <div class="card">
+    <div class="card-body">
+      <table class="table table-hover table-sm">
+        <thead class="table-dark">
+          <tr>
+            <th style="width: 18%;">Elemento</th>
+            <th style="width: 7%;">Cantidad</th>
+            <th style="width: 18%;">Proyecto</th>
+            <th style="width: 12%;">Fecha</th>
+            <th style="width: 10%;">Estado</th>
+            <th style="width: 25%;">Observaciones</th>
+            <th style="width: 10%;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for solicitud in solicitudes %}
+            <tr>
+              <td><strong>{{ solicitud.elemento.nombre }}</strong></td>
+              <td class="text-center">{{ solicitud.cantidad }}</td>
+              <td>{{ solicitud.proyecto }}</td>
+              <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
+              <td>
+                <span class="badge {% if solicitud.estado == 'aprobada' %}bg-success{% elif solicitud.estado == 'rechazada' %}bg-danger{% elif solicitud.estado == 'entregada' %}bg-info{% else %}bg-warning{% endif %}">
+                  {{ solicitud.get_estado_display }}
+                </span>
+              </td>
+              <td>
+                {% if solicitud.observaciones %}
+                  <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ solicitud.observaciones }}">
+                    {{ solicitud.observaciones|truncatechars:50 }}
+                  </span>
+                {% else %}
+                  <span class="text-muted">-</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if is_gestor %}
+                  <a href="{% url 'inventario:solicitud_update' solicitud.pk %}" class="btn btn-sm btn-outline-warning" title="Editar">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4">
+                <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
+                <p class="text-muted">No hay solicitudes registradas.</p>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <a href="{% url 'inventario:index' %}" class="btn btn-secondary mt-3">Volver</a>
+</div>
+{% endblock %} 

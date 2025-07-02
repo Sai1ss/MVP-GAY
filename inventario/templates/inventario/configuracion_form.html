@@ -1,0 +1,146 @@
+{% extends 'inventario/base.html' %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="mb-0">{{ titulo }}</h3>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+              <label for="{{ form.nombre.id_for_label }}" class="form-label">
+                <strong>Nombre de la Configuración *</strong>
+              </label>
+              {{ form.nombre }}
+              {% if form.nombre.errors %}
+                <div class="text-danger small">
+                  {% for error in form.nombre.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">
+                Nombre único para identificar esta configuración (ej: "stock_minimo_global", "tiempo_sesion")
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.valor.id_for_label }}" class="form-label">
+                <strong>Valor *</strong>
+              </label>
+              {{ form.valor }}
+              {% if form.valor.errors %}
+                <div class="text-danger small">
+                  {% for error in form.valor.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">
+                Valor de la configuración (puede ser texto, número, true/false, etc.)
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.categoria.id_for_label }}" class="form-label">
+                <strong>Categoría</strong>
+              </label>
+              {{ form.categoria }}
+              {% if form.categoria.errors %}
+                <div class="text-danger small">
+                  {% for error in form.categoria.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.descripcion.id_for_label }}" class="form-label">
+                <strong>Descripción</strong>
+              </label>
+              {{ form.descripcion }}
+              {% if form.descripcion.errors %}
+                <div class="text-danger small">
+                  {% for error in form.descripcion.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">
+                Descripción opcional de para qué sirve esta configuración
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                {{ form.activo }}
+                <label class="form-check-label" for="{{ form.activo.id_for_label }}">
+                  <strong>Configuración Activa</strong>
+                </label>
+              </div>
+              {% if form.activo.errors %}
+                <div class="text-danger small">
+                  {% for error in form.activo.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">
+                Solo las configuraciones activas se aplican en el sistema
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i>
+                Guardar Configuración
+              </button>
+              <a href="{% url 'inventario:configuracion_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times me-1"></i>
+                Cancelar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Información adicional -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            Configuraciones Predefinidas Útiles
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Inventario</h6>
+              <ul class="small">
+                <li><code>stock_minimo_global</code> - Stock mínimo por defecto</li>
+                <li><code>dias_vencimiento_alerta</code> - Días antes del vencimiento para alertar</li>
+                <li><code>ubicacion_default</code> - Ubicación por defecto para nuevos elementos</li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h6>Alertas</h6>
+              <ul class="small">
+                <li><code>email_alertas</code> - Email para enviar alertas</li>
+                <li><code>alertas_activas</code> - true/false para activar alertas</li>
+                <li><code>frecuencia_alertas</code> - Frecuencia de envío de alertas</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

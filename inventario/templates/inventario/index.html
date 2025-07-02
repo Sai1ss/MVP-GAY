@@ -9,14 +9,54 @@
         <a href="{% url 'inventario:elemento_create' %}" class="btn btn-primary me-2">
           Nuevo Elemento
         </a>
+        <a href="{% url 'inventario:categoria_list' %}" class="btn btn-outline-secondary me-2">
+          Categorías
+        </a>
+        <a href="{% url 'inventario:etiqueta_list' %}" class="btn btn-outline-secondary">
+          Etiquetas
+        </a>
       {% endif %}
       {% if is_comprador %}
         <a href="{% url 'inventario:recepcion_create' %}" class="btn btn-success">
           Registrar Compra
         </a>
       {% endif %}
+      {% if is_gestor or is_admin or is_gerente_proyecto %}
+        <a href="{% url 'inventario:reportes' %}" class="btn btn-outline-dark me-2">
+          <i class="fas fa-chart-bar me-1"></i> Reportes
+        </a>
+      {% endif %}
     </div>
   </div>
+
+  <!-- Búsqueda y Filtros -->
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <input type="text" name="q" class="form-control" placeholder="Buscar elementos..." 
+             value="{{ request.GET.q }}" title="Buscar por nombre, número de serie, lote o ubicación">
+    </div>
+    <div class="col-md-3">
+      <select name="categoria" class="form-select" title="Filtrar por categoría">
+        <option value="">Todas las categorías</option>
+        {% for cat in categorias %}
+          <option value="{{ cat.id }}" {% if cat.id|stringformat:'s' == request.GET.categoria %}selected{% endif %}>{{ cat.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="etiqueta" class="form-select" title="Filtrar por etiqueta">
+        <option value="">Todas las etiquetas</option>
+        {% for tag in etiquetas %}
+          <option value="{{ tag.id }}" {% if tag.id|stringformat:'s' == request.GET.etiqueta %}selected{% endif %}>{{ tag.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button type="submit" class="btn btn-outline-primary w-100">
+        <i class="fas fa-search me-1"></i> Buscar/Filtrar
+      </button>
+    </div>
+  </form>
 
   {% if is_admin %}
     <!-- Dropdown de usuarios y roles -->
@@ -60,47 +100,106 @@
     </div>
   {% endif %}
 
-  <div class="table-responsive">
-    <table class="table table-bordered table-striped align-middle">
-      <thead class="table-light">
+</div> <!-- Cierre del container principal antes de la tabla -->
+
+<div class="d-flex justify-content-center w-100 mb-5">
+  <table class="table table-bordered table-striped table-sm align-middle" style="min-width:1200px; max-width:95vw;">
+    <thead class="table-dark">
+      <tr>
+        <th style="width: 15%;">Nombre</th>
+        <th style="width: 8%;">N. Serie</th>
+        <th style="width: 8%;">Categoría</th>
+        <th style="width: 10%;">Etiquetas</th>
+        <th style="width: 6%;">Lote</th>
+        <th style="width: 8%;">Fecha Vencimiento</th>
+        <th style="width: 8%;">Stock Actual</th>
+        <th style="width: 8%;">Stock Mínimo</th>
+        <th style="width: 10%;">Precio Promedio</th>
+        <th style="width: 10%;">Último Precio</th>
+        <th style="width: 7%;">Recepciones</th>
+        <th style="width: 8%;">Ubicación</th>
+        <th style="width: 12%;" class="text-center">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in elementos %}
         <tr>
-          <th>Nombre</th>
-          <th>N. Serie</th>
-          <th>Stock Actual</th>
-          <th>Stock Mínimo</th>
-          <th>Ubicación</th>
-          <th class="text-center">Acciones</th>
+          <td>{{ e.nombre }}</td>
+          <td>{{ e.numero_serie }}</td>
+          <td>
+            {% if e.categoria %}
+              <span class="badge" style="background:{{ e.categoria.color }};color:#fff;">{{ e.categoria.nombre }}</span>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% for tag in e.etiquetas.all %}
+              <span class="badge" style="background:{{ tag.color }};color:#fff;">{{ tag.nombre }}</span>
+            {% empty %}
+              <span class="text-muted">-</span>
+            {% endfor %}
+          </td>
+          <td>{{ e.lote|default:'-' }}</td>
+          <td>
+            {% if e.fecha_vencimiento %}
+              <span class="{% if e.fecha_vencimiento <= today_plus_30 %}badge bg-danger{% elif e.fecha_vencimiento <= today_plus_90 %}badge bg-warning text-dark{% else %}badge bg-success{% endif %}">
+                {{ e.fecha_vencimiento|date:'d/m/Y' }}
+              </span>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {{ e.stock_actual }}
+            {% if e.stock_actual <= e.stock_minimo %}
+              <span class="badge bg-danger ms-1">Bajo</span>
+            {% endif %}
+          </td>
+          <td>{{ e.stock_minimo }}</td>
+          <td>
+            {% if e.precio_promedio > 0 %}
+              ${{ e.precio_promedio|floatformat:2 }}
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if e.precio_ultimo > 0 %}
+              ${{ e.precio_ultimo|floatformat:2 }}
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if e.total_recepciones > 0 %}
+              <span class="badge bg-info">{{ e.total_recepciones }}</span>
+            {% else %}
+              <span class="text-muted">0</span>
+            {% endif %}
+          </td>
+          <td>{{ e.ubicacion }}</td>
+          <td class="text-center">
+            {% if is_gestor %}
+              <a href="{% url 'inventario:elemento_update' e.pk %}" class="btn btn-sm btn-warning me-1">Editar</a>
+              <a href="{% url 'inventario:elemento_delete' e.pk %}" class="btn btn-sm btn-danger me-1">Borrar</a>
+            {% endif %}
+            {% if is_comprador %}
+              <a href="{% url 'inventario:historial_precios' e.pk %}" class="btn btn-sm btn-info me-1" title="Ver historial de precios">
+                <i class="fas fa-chart-line"></i>
+              </a>
+            {% endif %}
+            {% if is_admin %}
+              <a href="{% url 'inventario:proveedor_list' %}" class="btn btn-sm btn-info">Proveedores</a>
+            {% endif %}
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        {% for e in elementos %}
-          <tr>
-            <td>{{ e.nombre }}</td>
-            <td>{{ e.numero_serie }}</td>
-            <td>
-              {{ e.stock_actual }}
-              {% if e.stock_actual <= e.stock_minimo %}
-                <span class="badge bg-danger ms-1">Bajo</span>
-              {% endif %}
-            </td>
-            <td>{{ e.stock_minimo }}</td>
-            <td>{{ e.ubicacion }}</td>
-            <td class="text-center">
-              {% if is_gestor %}
-                <a href="{% url 'inventario:elemento_update' e.pk %}" class="btn btn-sm btn-warning me-1">Editar</a>
-                <a href="{% url 'inventario:elemento_delete' e.pk %}" class="btn btn-sm btn-danger me-1">Borrar</a>
-              {% endif %}
-              {% if is_admin %}
-                <a href="{% url 'inventario:proveedor_list' %}" class="btn btn-sm btn-info">Proveedores</a>
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="6" class="text-center py-4">No hay elementos registrados.</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+      {% empty %}
+        <tr>
+          <td colspan="12" class="text-center py-4">No hay elementos registrados.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

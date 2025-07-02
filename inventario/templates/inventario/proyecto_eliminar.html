@@ -1,0 +1,34 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-header bg-danger text-white">
+      <h4>Eliminar Proyecto</h4>
+    </div>
+    <div class="card-body">
+      <p>¿Estás seguro que deseas eliminar este proyecto?</p>
+      <ul>
+        <li><strong>Nombre:</strong> {{ proyecto.nombre }}</li>
+        <li><strong>Gerente:</strong> {{ proyecto.gerente.username }}</li>
+        <li><strong>Fecha Inicio:</strong> {{ proyecto.fecha_inicio|date:"d/m/Y" }}</li>
+        <li><strong>Fecha Fin:</strong> {{ proyecto.fecha_fin_estimada|date:"d/m/Y" }}</li>
+        <li><strong>Estado:</strong> {{ proyecto.get_estado_display }}</li>
+        <li><strong>Presupuesto:</strong> {% if proyecto.presupuesto %}${{ proyecto.presupuesto }}{% else %}-{% endif %}</li>
+      </ul>
+      <form method="post">
+        {% csrf_token %}
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-1"></i>
+            Eliminar Proyecto
+          </button>
+          <a href="{% url 'inventario:proyecto_list' %}" class="btn btn-secondary">
+            <i class="fas fa-times me-1"></i>
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} 

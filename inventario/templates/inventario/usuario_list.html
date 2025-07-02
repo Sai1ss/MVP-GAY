@@ -1,0 +1,153 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Gestión de Usuarios</h2>
+    <a href="{% url 'inventario:usuario_create' %}" class="btn btn-primary">
+      <i class="fas fa-user-plus me-1"></i>
+      Nuevo Usuario
+    </a>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Filtrar por Grupo:</label>
+          <select name="grupo" class="form-select">
+            <option value="">Todos los grupos</option>
+            {% for grupo in grupos %}
+              <option value="{{ grupo.name }}" {% if grupo_actual == grupo.name %}selected{% endif %}>
+                {{ grupo.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Filtrar por Estado:</label>
+          <select name="estado" class="form-select">
+            <option value="">Todos los usuarios</option>
+            <option value="activo" {% if estado_actual == 'activo' %}selected{% endif %}>Activos</option>
+            <option value="inactivo" {% if estado_actual == 'inactivo' %}selected{% endif %}>Inactivos</option>
+          </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <button type="submit" class="btn btn-outline-primary me-2">
+            <i class="fas fa-filter me-1"></i>Filtrar
+          </button>
+          <a href="{% url 'inventario:usuario_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-times me-1"></i>Limpiar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla de usuarios -->
+  <div class="card">
+    <div class="card-body">
+      {% if usuarios %}
+        <table class="table table-hover table-sm">
+          <thead class="table-dark">
+            <tr>
+              <th style="width: 15%;">Usuario</th>
+              <th style="width: 18%;">Nombre Completo</th>
+              <th style="width: 20%;">Email</th>
+              <th style="width: 15%;">Grupos</th>
+              <th style="width: 8%;">Estado</th>
+              <th style="width: 12%;">Último Acceso</th>
+              <th style="width: 12%;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for usuario in usuarios %}
+              <tr>
+                <td>
+                  <strong>{{ usuario.username }}</strong>
+                  {% if usuario.is_superuser %}
+                    <span class="badge bg-danger ms-1">Super Admin</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if usuario.first_name or usuario.last_name %}
+                    {{ usuario.first_name }} {{ usuario.last_name }}
+                  {% else %}
+                    <span class="text-muted">No especificado</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if usuario.email %}
+                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ usuario.email }}">
+                      {{ usuario.email }}
+                    </span>
+                  {% else %}
+                    <span class="text-muted">No especificado</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if usuario.groups.all %}
+                    {% for grupo in usuario.groups.all %}
+                      <span class="badge bg-info me-1">{{ grupo.name }}</span>
+                    {% endfor %}
+                  {% else %}
+                    <span class="text-muted">Sin grupos</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if usuario.is_active %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactivo</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if usuario.last_login %}
+                    {{ usuario.last_login|date:"d/m/Y H:i" }}
+                  {% else %}
+                    <span class="text-muted">Nunca</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <a href="{% url 'inventario:usuario_update' usuario.pk %}" 
+                       class="btn btn-sm btn-outline-primary" title="Editar">
+                      <i class="fas fa-edit"></i>
+                    </a>
+                    
+                    {% if usuario != user %}
+                      <a href="{% url 'inventario:usuario_toggle_active' usuario.pk %}" 
+                         class="btn btn-sm btn-outline-warning" title="{% if usuario.is_active %}Desactivar{% else %}Activar{% endif %}">
+                        <i class="fas fa-{% if usuario.is_active %}user-slash{% else %}user-check{% endif %}"></i>
+                      </a>
+                      
+                      <a href="{% url 'inventario:usuario_reset_password' usuario.pk %}" 
+                         class="btn btn-sm btn-outline-info" title="Restablecer Contraseña">
+                        <i class="fas fa-key"></i>
+                      </a>
+                      
+                      <a href="{% url 'inventario:usuario_delete' usuario.pk %}" 
+                         class="btn btn-sm btn-outline-danger" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                      </a>
+                    {% else %}
+                      <span class="text-muted small">Tu cuenta</span>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="text-center py-4">
+          <i class="fas fa-users fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No se encontraron usuarios</h5>
+          <p class="text-muted">No hay usuarios que coincidan con los filtros aplicados.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %} 

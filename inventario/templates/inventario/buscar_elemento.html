@@ -1,0 +1,80 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Buscar Elementos</h1>
+  <a href="{% url 'inventario:movimiento_create' %}" class="btn btn-primary">
+    <i class="fas fa-plus me-1"></i>
+    Registrar Movimiento
+  </a>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="get" class="row g-3">
+      <div class="col-md-8">
+        <input type="text" name="q" value="{{ query }}" class="form-control" 
+               placeholder="Buscar por nombre, número de serie o ubicación...">
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="fas fa-search me-1"></i>
+          Buscar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if query %}
+  <div class="alert alert-info">
+    <i class="fas fa-info-circle me-1"></i>
+    Resultados para: <strong>"{{ query }}"</strong>
+  </div>
+{% endif %}
+
+{% if elementos %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+      <thead class="table-light">
+        <tr>
+          <th>Nombre</th>
+          <th>N. Serie</th>
+          <th>Ubicación</th>
+          <th>Stock Actual</th>
+          <th>Stock Mínimo</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for elemento in elementos %}
+          <tr>
+            <td>{{ elemento.nombre }}</td>
+            <td>{{ elemento.numero_serie }}</td>
+            <td>{{ elemento.ubicacion }}</td>
+            <td>{{ elemento.stock_actual }}</td>
+            <td>{{ elemento.stock_minimo }}</td>
+            <td>
+              {% if elemento.stock_actual <= elemento.stock_minimo %}
+                <span class="badge bg-danger">Stock Bajo</span>
+              {% else %}
+                <span class="badge bg-success">Disponible</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% elif query %}
+  <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-1"></i>
+    No se encontraron elementos que coincidan con tu búsqueda.
+  </div>
+{% else %}
+  <div class="alert alert-info">
+    <i class="fas fa-info-circle me-1"></i>
+    Ingresa un término de búsqueda para encontrar elementos del inventario.
+  </div>
+{% endif %}
+{% endblock %} 

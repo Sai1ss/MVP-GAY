@@ -1,0 +1,116 @@
+{% extends 'inventario/base.html' %}
+{% load static %}
+
+{% block title %}Consumir Recurso - {{ asignacion.elemento.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-utensils me-2"></i>
+                        Consumir Recurso
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5>Detalles de la Asignación</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Elemento:</strong> {{ asignacion.elemento.nombre }}</p>
+                                <p><strong>Proyecto:</strong> {{ asignacion.proyecto }}</p>
+                                <p><strong>Cantidad Asignada:</strong> {{ asignacion.cantidad_asignada }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Cantidad Disponible:</strong> 
+                                    <span class="badge bg-success">{{ asignacion.cantidad_disponible }}</span>
+                                </p>
+                                <p><strong>Fecha de Asignación:</strong> {{ asignacion.fecha_asignacion|date:"d/m/Y H:i" }}</p>
+                                <p><strong>Estado:</strong> 
+                                    {% if asignacion.estado == 'activa' %}
+                                        <span class="badge bg-primary">Activa</span>
+                                    {% elif asignacion.estado == 'consumida' %}
+                                        <span class="badge bg-success">Consumida</span>
+                                    {% elif asignacion.estado == 'cancelada' %}
+                                        <span class="badge bg-danger">Cancelada</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if asignacion.cantidad_disponible > 0 %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="cantidad_consumir" class="form-label">
+                                    <strong>Cantidad a Consumir:</strong>
+                                </label>
+                                <input type="number" 
+                                       class="form-control" 
+                                       id="cantidad_consumir" 
+                                       name="cantidad_consumir" 
+                                       min="1" 
+                                       max="{{ asignacion.cantidad_disponible }}" 
+                                       value="1" 
+                                       required>
+                                <div class="form-text">
+                                    Máximo disponible: {{ asignacion.cantidad_disponible }}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="observaciones" class="form-label">
+                                    <strong>Observaciones (opcional):</strong>
+                                </label>
+                                <textarea class="form-control" 
+                                          id="observaciones" 
+                                          name="observaciones" 
+                                          rows="3" 
+                                          placeholder="Descripción del consumo..."></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'inventario:asignacion_list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-utensils me-2"></i>Consumir Recurso
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>Sin Stock Disponible</h5>
+                            <p>Esta asignación no tiene recursos disponibles para consumir.</p>
+                        </div>
+                        <div class="text-center">
+                            <a href="{% url 'inventario:asignacion_list' %}" class="btn btn-primary">
+                                <i class="fas fa-arrow-left me-2"></i>Volver a la Lista
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cantidadInput = document.getElementById('cantidad_consumir');
+    const maxCantidad = {{ asignacion.cantidad_disponible }};
+    
+    cantidadInput.addEventListener('input', function() {
+        const valor = parseInt(this.value);
+        if (valor > maxCantidad) {
+            this.value = maxCantidad;
+        } else if (valor < 1) {
+            this.value = 1;
+        }
+    });
+});
+</script>
+{% endblock %} 

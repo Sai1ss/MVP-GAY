@@ -1,0 +1,172 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Reportes de Inventario</h2>
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <select name="categoria" class="form-select" title="Filtrar por categoría">
+        <option value="">Todas las categorías</option>
+        {% for cat in categorias %}
+          <option value="{{ cat.id }}" {% if filtros.categoria == cat.id|stringformat:'s' %}selected{% endif %}>{{ cat.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="proveedor" class="form-select" title="Filtrar por proveedor">
+        <option value="">Todos los proveedores</option>
+        {% for prov in proveedores %}
+          <option value="{{ prov.id }}" {% if filtros.proveedor == prov.id|stringformat:'s' %}selected{% endif %}>{{ prov.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="stock_bajo" value="1" id="stock_bajo" {% if filtros.stock_bajo == '1' %}checked{% endif %}>
+        <label class="form-check-label" for="stock_bajo">Stock Bajo</label>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="vencidos" value="1" id="vencidos" {% if filtros.vencidos == '1' %}checked{% endif %}>
+        <label class="form-check-label" for="vencidos">Vencidos</label>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <button type="submit" class="btn btn-outline-primary w-100">
+        <i class="fas fa-filter me-1"></i> Filtrar
+      </button>
+    </div>
+  </form>
+
+  <!-- Análisis para Jefe de Producción -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line me-2"></i>Piezas Más Utilizadas
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if piezas_mas_utilizadas %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Elemento</th>
+                    <th>Total Consumido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in piezas_mas_utilizadas %}
+                    <tr>
+                      <td>{{ item.elemento__nombre }}</td>
+                      <td><span class="badge bg-success">{{ item.total_consumo }}</span></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No hay datos de consumo disponibles.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-project-diagram me-2"></i>Consumo por Proyecto
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if consumo_por_proyecto %}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Proyecto</th>
+                    <th>Total Consumido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in consumo_por_proyecto %}
+                    <tr>
+                      <td>{{ item.proyecto }}</td>
+                      <td><span class="badge bg-warning text-dark">{{ item.total_consumo }}</span></td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted">No hay datos de consumo por proyecto disponibles.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Nombre</th>
+          <th>N. Serie</th>
+          <th>Categoría</th>
+          <th>Proveedor</th>
+          <th>Lote</th>
+          <th>Fecha Vencimiento</th>
+          <th>Stock Actual</th>
+          <th>Stock Mínimo</th>
+          <th>Precio Promedio</th>
+          <th>Último Precio</th>
+          <th>Recepciones</th>
+          <th>Ubicación</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in elementos %}
+          <tr>
+            <td>{{ e.nombre }}</td>
+            <td>{{ e.numero_serie }}</td>
+            <td>{{ e.categoria.nombre|default:'-' }}</td>
+            <td>{{ e.proveedor.nombre|default:'-' }}</td>
+            <td>{{ e.lote|default:'-' }}</td>
+            <td>{% if e.fecha_vencimiento %}{{ e.fecha_vencimiento|date:'d/m/Y' }}{% else %}-{% endif %}</td>
+            <td>{{ e.stock_actual }}</td>
+            <td>{{ e.stock_minimo }}</td>
+            <td>
+              {% if e.precio_promedio > 0 %}
+                ${{ e.precio_promedio|floatformat:2 }}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.precio_ultimo > 0 %}
+                ${{ e.precio_ultimo|floatformat:2 }}
+              {% else %}
+                <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if e.total_recepciones > 0 %}
+                <span class="badge bg-info">{{ e.total_recepciones }}</span>
+              {% else %}
+                <span class="text-muted">0</span>
+              {% endif %}
+            </td>
+            <td>{{ e.ubicacion }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="12" class="text-center">No hay elementos para mostrar.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <a href="{% url 'inventario:index' %}" class="btn btn-secondary mt-3">Volver</a>
+</div>
+{% endblock %} 

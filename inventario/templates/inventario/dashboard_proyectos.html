@@ -1,0 +1,85 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Dashboard de Proyectos</h2>
+  
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <h5 class="card-title">Total Proyectos</h5>
+          <h3>{{ total_proyectos }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <h5 class="card-title">Completados</h5>
+          <h3>{{ proyectos_completados }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-white">
+        <div class="card-body">
+          <h5 class="card-title">En Proceso</h5>
+          <h3>{{ proyectos_en_proceso }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <h5 class="card-title">Planificación</h5>
+          <h3>{{ proyectos_planificacion }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <div class="card-header">
+      <h4>Resumen de Proyectos</h4>
+    </div>
+    <div class="card-body">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Gerente</th>
+            <th>Estado</th>
+            <th>Progreso</th>
+            <th>Presupuesto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for proyecto in proyectos %}
+            <tr>
+              <td>{{ proyecto.nombre }}</td>
+              <td>{{ proyecto.gerente.username }}</td>
+              <td>
+                <span class="badge {% if proyecto.estado == 'completado' %}bg-success{% elif proyecto.estado == 'en_proceso' %}bg-warning{% elif proyecto.estado == 'cancelado' %}bg-danger{% else %}bg-info{% endif %}">
+                  {{ proyecto.get_estado_display }}
+                </span>
+              </td>
+              <td>
+                <div class="progress">
+                  <div class="progress-bar" style="width: {% if proyecto.estado == 'completado' %}100{% elif proyecto.estado == 'en_proceso' %}50{% elif proyecto.estado == 'cancelado' %}0{% else %}25{% endif %}%"></div>
+                </div>
+              </td>
+              <td>{% if proyecto.presupuesto %}${{ proyecto.presupuesto }}{% else %}-{% endif %}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center">No hay proyectos registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <div class="mt-3">
+    <a href="{% url 'inventario:index' %}" class="btn btn-secondary">Volver al Inicio</a>
+  </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,125 @@
+{% extends 'inventario/base.html' %}
+{% load inventario_extras %}
+
+{% block title %}Historial de Precios - {{ elemento.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Historial de Precios de Compra</h2>
+                <a href="{% url 'inventario:index' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+            
+            <!-- Información del Elemento -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Información del Elemento</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nombre:</strong> {{ elemento.nombre }}</p>
+                            <p><strong>Número de Serie:</strong> {{ elemento.numero_serie }}</p>
+                            <p><strong>Proveedor:</strong> {{ elemento.proveedor.nombre }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Categoría:</strong> 
+                                {% if elemento.categoria %}
+                                    <span class="badge" style="background-color: {{ elemento.categoria.color }};">
+                                        {{ elemento.categoria.nombre }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">Sin categoría</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Stock Actual:</strong> {{ elemento.stock_actual }}</p>
+                            <p><strong>Ubicación:</strong> {{ elemento.ubicacion }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estadísticas de Precios -->
+            {% if recepciones %}
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary">Precio Promedio</h6>
+                            <h4 class="text-primary">${{ precio_promedio|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title text-success">Precio Mínimo</h6>
+                            <h4 class="text-success">${{ precio_minimo|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title text-warning">Precio Máximo</h6>
+                            <h4 class="text-warning">${{ precio_maximo|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h6 class="card-title text-info">Último Precio</h6>
+                            <h4 class="text-info">${{ precio_ultimo|floatformat:2 }}</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Tabla de Historial -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Historial de Recepciones</h5>
+                </div>
+                <div class="card-body">
+                    {% if recepciones %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio Unitario</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for recepcion in recepciones %}
+                                    <tr>
+                                        <td>{{ recepcion.fecha|date:"d/m/Y H:i" }}</td>
+                                        <td>{{ recepcion.cantidad }}</td>
+                                        <td>${{ recepcion.precio_unitario|floatformat:2 }}</td>
+                                        <td>${{ recepcion.cantidad|multiply:recepcion.precio_unitario|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay recepciones registradas</h5>
+                            <p class="text-muted">Este elemento no tiene historial de precios de compra.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,56 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Proyectos</h2>
+    <a href="{% url 'inventario:proyecto_create' %}" class="btn btn-primary">Nuevo Proyecto</a>
+  </div>
+  
+  <table class="table table-bordered table-striped table-sm">
+    <thead class="table-dark">
+      <tr>
+        <th style="width: 20%;">Nombre</th>
+        <th style="width: 15%;">Gerente</th>
+        <th style="width: 12%;">Fecha Inicio</th>
+        <th style="width: 12%;">Fecha Fin</th>
+        <th style="width: 10%;">Estado</th>
+        <th style="width: 12%;">Presupuesto</th>
+        <th style="width: 19%;">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for proyecto in proyectos %}
+        <tr>
+          <td>{{ proyecto.nombre }}</td>
+          <td>{{ proyecto.gerente.username }}</td>
+          <td>{{ proyecto.fecha_inicio|date:"d/m/Y" }}</td>
+          <td>{{ proyecto.fecha_fin_estimada|date:"d/m/Y" }}</td>
+          <td>
+            <span class="badge {% if proyecto.estado == 'completado' %}bg-success{% elif proyecto.estado == 'en_proceso' %}bg-warning{% elif proyecto.estado == 'cancelado' %}bg-danger{% else %}bg-info{% endif %}">
+              {{ proyecto.get_estado_display }}
+            </span>
+          </td>
+          <td>{% if proyecto.presupuesto %}${{ proyecto.presupuesto }}{% else %}-{% endif %}</td>
+          <td>
+            <a href="{% url 'inventario:proyecto_detail' proyecto.id %}" class="btn btn-info text-white me-1" style="min-width: 80px;">
+              <i class="fas fa-eye me-1"></i>Ver
+            </a>
+            {% if es_admin_o_gestor %}
+              <a href="{% url 'inventario:proyecto_edit' proyecto.id %}" class="btn btn-warning text-white me-1" style="min-width: 80px;">
+                <i class="fas fa-edit me-1"></i>Editar
+              </a>
+              <a href="{% url 'inventario:proyecto_eliminar' proyecto.id %}" class="btn btn-danger text-white" style="min-width: 80px;">
+                <i class="fas fa-trash me-1"></i>Eliminar
+              </a>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center">No hay proyectos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+  <a href="{% url 'inventario:index' %}" class="btn btn-secondary">Volver</a>
+</div>
+{% endblock %} 

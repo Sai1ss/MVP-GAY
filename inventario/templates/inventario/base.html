@@ -13,7 +13,13 @@
     rel="stylesheet"
     crossorigin="anonymous">
 
-  <!-- … tu CSS propio … -->
+  <!-- Font Awesome para iconos -->
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    rel="stylesheet"
+    crossorigin="anonymous">
+
+  <!-- CSS propio -->
   <link rel="stylesheet" href="{% static 'inventario/css/styles.css' %}">
 </head>
 
@@ -35,25 +41,60 @@
           {% if user.is_authenticated %}
             {% if is_gestor %}
               <li class="nav-item"><a class="nav-link" href="{% url 'inventario:elemento_create' %}">Nuevo Elemento</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:solicitud_list' %}">Solicitudes</a></li>
             {% endif %}
 
             {% if is_comprador %}
               <li class="nav-item"><a class="nav-link" href="{% url 'inventario:recepcion_create' %}">Registrar Compra</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:movimiento_list' %}">Ver Movimientos</a></li>
             {% endif %}
 
             {% if is_admin %}
               <li class="nav-item"><a class="nav-link" href="{% url 'inventario:proveedor_list' %}">Proveedores</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:usuario_list' %}">Usuarios</a></li>
+              {# <li class="nav-item"><a class="nav-link" href="{% url 'inventario:configuracion_list' %}">Configuración</a></li> #}
               <li class="nav-item"><a class="nav-link" href="{% url 'inventario:elemento_create' %}">Nuevo Elemento</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'inventario:recepcion_create' %}">Registrar Compra</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:proveedor_list' %}">Ver Proveedores</a></li>
-              
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:solicitud_list' %}">Solicitudes</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:movimiento_list' %}">Movimientos</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:auditoria_list' %}">Auditorías</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:proyecto_list' %}">Proyectos</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:dashboard_proyectos' %}">Dashboard</a></li>
             {% endif %}
 
             {% if is_logistica %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:index' %}">Buscar/Recuperar</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:movimiento_create' %}">Registrar Movimiento</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:movimiento_list' %}">Ver Movimientos</a></li>
             {% endif %}
-            {% if is_auditor %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:index' %}">Auditoría</a></li>
+            
+            {% if is_auditor or is_gestor %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:auditoria_create' %}">Nueva Auditoría</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:auditoria_list' %}">Ver Auditorías</a></li>
+            {% endif %}
+            
+            {% if is_produccion %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:proyecto_create' %}">Nuevo Proyecto</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:proyecto_list' %}">Mis Proyectos</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:asignacion_create' %}">
+                <i class="fas fa-tasks me-1"></i> Asignar Recursos
+              </a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:asignacion_list' %}">
+                <i class="fas fa-list me-1"></i> Ver Asignaciones
+              </a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:reportes' %}">
+                <i class="fas fa-chart-bar me-1"></i> Reportes
+              </a></li>
+            {% endif %}
+            
+            {% if is_gerente_proyecto %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:dashboard_proyectos' %}">Dashboard</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:proyecto_list' %}">Proyectos</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:solicitud_list' %}">Solicitudes</a></li>
+            {% endif %}
+            
+            {% if is_usuario_final %}
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:solicitud_create' %}">Solicitar Material</a></li>
+              <li class="nav-item"><a class="nav-link" href="{% url 'inventario:solicitud_list' %}">Mis Solicitudes</a></li>
             {% endif %}
           {% endif %}
         </ul>

@@ -1,0 +1,147 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Asignaciones de Recursos</h2>
+    <a href="{% url 'inventario:asignacion_create' %}" class="btn btn-primary">
+      <i class="fas fa-plus me-1"></i>Nueva Asignación
+    </a>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <h5 class="card-title">Total Asignado</h5>
+          <h3>{{ estadisticas.total_asignado }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <h5 class="card-title">Disponible</h5>
+          <h3>{{ estadisticas.total_disponible }}</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card bg-warning text-dark">
+        <div class="card-body">
+          <h5 class="card-title">En Uso</h5>
+          <h3>{{ estadisticas.total_uso }}</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <select name="estado" id="estado" class="form-select" title="Filtrar por estado">
+        <option value="">Todos los estados</option>
+        <option value="reservado" {% if filtros.estado == 'reservado' %}selected{% endif %}>Reservado</option>
+        <option value="en_uso" {% if filtros.estado == 'en_uso' %}selected{% endif %}>En Uso</option>
+        <option value="liberado" {% if filtros.estado == 'liberado' %}selected{% endif %}>Liberado</option>
+        <option value="cancelado" {% if filtros.estado == 'cancelado' %}selected{% endif %}>Cancelado</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <input type="text" name="proyecto" id="proyecto" class="form-control" placeholder="Buscar por proyecto" value="{{ filtros.proyecto }}" title="Filtrar por proyecto">
+    </div>
+    <div class="col-md-3">
+      <select name="elemento" class="form-select">
+        <option value="">Todos los elementos</option>
+        {% for elemento in elementos %}
+          <option value="{{ elemento.id }}" {% if filtros.elemento == elemento.id|stringformat:'s' %}selected{% endif %}>{{ elemento.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button type="submit" class="btn btn-outline-primary w-100">
+        <i class="fas fa-filter me-1"></i>Filtrar
+      </button>
+    </div>
+  </form>
+
+  <!-- Tabla de asignaciones -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Elemento</th>
+          <th>Proyecto</th>
+          <th>Cantidad Asignada</th>
+          <th>Por Consumir</th>
+          <th>Disponible</th>
+          <th>Estado</th>
+          <th>Fecha Asignación</th>
+          <th>Liberación Estimada</th>
+          <th>Asignado Por</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asignacion in asignaciones %}
+          <tr>
+            <td>
+              <strong>{{ asignacion.elemento.nombre }}</strong><br>
+              <small class="text-muted">{{ asignacion.elemento.numero_serie }}</small>
+            </td>
+            <td>{{ asignacion.proyecto }}</td>
+            <td>
+              <span class="badge bg-primary">{{ asignacion.cantidad_asignada }}</span>
+            </td>
+            <td>{{ asignacion.cantidad_disponible }}</td>
+            <td>{{ asignacion.elemento.stock_actual }}</td>
+            <td>
+              {% if asignacion.estado == 'reservado' %}
+                <span class="badge bg-warning text-dark">Reservado</span>
+              {% elif asignacion.estado == 'en_uso' %}
+                <span class="badge bg-info">En Uso</span>
+              {% elif asignacion.estado == 'liberado' %}
+                <span class="badge bg-success">Liberado</span>
+              {% elif asignacion.estado == 'cancelado' %}
+                <span class="badge bg-danger">Cancelado</span>
+              {% endif %}
+            </td>
+            <td>{{ asignacion.fecha_asignacion|date:'d/m/Y H:i' }}</td>
+            <td>{{ asignacion.fecha_liberacion_estimada|date:'d/m/Y' }}</td>
+            <td>{{ asignacion.asignado_por.username }}</td>
+            <td>
+              <div class="btn-group" role="group">
+                <a href="{% url 'inventario:asignacion_detail' asignacion.id %}" class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-eye"></i>
+                </a>
+                {% if asignacion.estado in 'reservado,en_uso' %}
+                  <a href="{% url 'inventario:asignacion_edit' asignacion.id %}" class="btn btn-sm btn-outline-warning">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  {% if asignacion.cantidad_disponible > 0 %}
+                    <a href="{% url 'inventario:asignacion_consumir' asignacion.id %}" class="btn btn-sm btn-outline-info">
+                      <i class="fas fa-utensils"></i>
+                    </a>
+                  {% endif %}
+                  <a href="{% url 'inventario:asignacion_liberar' asignacion.id %}" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-unlock"></i>
+                  </a>
+                  <a href="{% url 'inventario:asignacion_cancelar' asignacion.id %}" class="btn btn-sm btn-outline-danger">
+                    <i class="fas fa-times"></i>
+                  </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9" class="text-center">No hay asignaciones para mostrar.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <a href="{% url 'inventario:index' %}" class="btn btn-secondary mt-3">Volver</a>
+</div>
+{% endblock %} 

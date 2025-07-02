@@ -1,0 +1,136 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Configuración del Sistema</h2>
+    <a href="{% url 'inventario:configuracion_create' %}" class="btn btn-primary">
+      <i class="fas fa-plus me-1"></i>
+      Nueva Configuración
+    </a>
+  </div>
+
+  <!-- Filtros por categoría -->
+  <div class="mb-4">
+    <div class="btn-group" role="group">
+      <a href="{% url 'inventario:configuracion_list' %}" 
+         class="btn btn-outline-primary {% if not categoria_actual %}active{% endif %}">
+        Todas
+      </a>
+      <a href="{% url 'inventario:configuracion_list' %}?categoria=inventario" 
+         class="btn btn-outline-primary {% if categoria_actual == 'inventario' %}active{% endif %}">
+        Inventario
+      </a>
+      <a href="{% url 'inventario:configuracion_list' %}?categoria=alertas" 
+         class="btn btn-outline-primary {% if categoria_actual == 'alertas' %}active{% endif %}">
+        Alertas
+      </a>
+      <a href="{% url 'inventario:configuracion_list' %}?categoria=seguridad" 
+         class="btn btn-outline-primary {% if categoria_actual == 'seguridad' %}active{% endif %}">
+        Seguridad
+      </a>
+      <a href="{% url 'inventario:configuracion_list' %}?categoria=general" 
+         class="btn btn-outline-primary {% if categoria_actual == 'general' %}active{% endif %}">
+        General
+      </a>
+    </div>
+  </div>
+
+  {% if configuraciones_por_categoria %}
+    {% for categoria, configuraciones in configuraciones_por_categoria.items %}
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            {% if categoria == 'inventario' %}
+              <i class="fas fa-boxes me-2"></i>Inventario
+            {% elif categoria == 'alertas' %}
+              <i class="fas fa-bell me-2"></i>Alertas
+            {% elif categoria == 'seguridad' %}
+              <i class="fas fa-shield-alt me-2"></i>Seguridad
+            {% else %}
+              <i class="fas fa-cog me-2"></i>General
+            {% endif %}
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Valor</th>
+                  <th>Descripción</th>
+                  <th>Estado</th>
+                  <th>Última Modificación</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for config in configuraciones %}
+                  <tr>
+                    <td>
+                      <strong>{{ config.nombre }}</strong>
+                    </td>
+                    <td>
+                      <code>{{ config.valor }}</code>
+                    </td>
+                    <td>
+                      {% if config.descripcion %}
+                        {{ config.descripcion|truncatechars:50 }}
+                      {% else %}
+                        <span class="text-muted">Sin descripción</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if config.activo %}
+                        <span class="badge bg-success">Activa</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Inactiva</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <small class="text-muted">
+                        {{ config.fecha_modificacion|date:"d/m/Y H:i" }}
+                        {% if config.modificado_por %}
+                          <br>por {{ config.modificado_por.username }}
+                        {% endif %}
+                      </small>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <a href="{% url 'inventario:configuracion_update' config.pk %}" 
+                           class="btn btn-warning text-white" title="Editar">
+                          <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'inventario:configuracion_toggle' config.pk %}" 
+                           class="btn btn-info text-white" title="{% if config.activo %}Desactivar{% else %}Activar{% endif %}">
+                          <i class="fas fa-{% if config.activo %}pause{% else %}play{% endif %}"></i>
+                        </a>
+                        <a href="{% url 'inventario:configuracion_delete' config.pk %}" 
+                           class="btn btn-danger text-white" title="Eliminar">
+                          <i class="fas fa-trash"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      No hay configuraciones registradas.
+      <a href="{% url 'inventario:configuracion_create' %}" class="alert-link">Crear la primera configuración</a>
+    </div>
+  {% endif %}
+
+  <a href="{% url 'inventario:index' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-1"></i>
+    Volver
+  </a>
+</div>
+{% endblock %} 

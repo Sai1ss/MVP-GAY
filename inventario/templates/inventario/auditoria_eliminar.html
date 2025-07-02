@@ -1,0 +1,48 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-header bg-danger text-white">
+      <h4>Eliminar Auditoría</h4>
+    </div>
+    <div class="card-body">
+      <p>¿Estás seguro que deseas eliminar esta auditoría?</p>
+      <ul>
+        <li><strong>Elemento:</strong> {{ auditoria.elemento.nombre }}</li>
+        <li><strong>Fecha:</strong> {{ auditoria.fecha_auditoria|date:"d/m/Y H:i" }}</li>
+        <li><strong>Stock Sistema:</strong> {{ auditoria.stock_sistema }}</li>
+        <li><strong>Stock Físico:</strong> {{ auditoria.stock_fisico }}</li>
+        <li><strong>Diferencia:</strong> {{ auditoria.diferencia }}</li>
+        <li><strong>Auditor:</strong> {{ auditoria.auditor.username }}</li>
+      </ul>
+      
+      {% if auditoria.diferencia != 0 %}
+        <div class="alert alert-warning">
+          <strong>¡Atención!</strong> Esta auditoría generó un ajuste de stock. 
+          Al eliminarla, se revertirá el stock a su valor anterior.
+        </div>
+      {% endif %}
+      
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="motivo" class="form-label">Motivo de eliminación *</label>
+          <textarea name="motivo" id="motivo" class="form-control" rows="3" required 
+                    placeholder="Explique el motivo por el cual desea eliminar esta auditoría..."></textarea>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-danger">
+            <i class="fas fa-trash me-1"></i>
+            Eliminar Auditoría
+          </button>
+          <a href="{% url 'inventario:auditoria_list' %}" class="btn btn-secondary">
+            <i class="fas fa-times me-1"></i>
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} 

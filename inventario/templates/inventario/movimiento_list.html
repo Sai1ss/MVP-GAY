@@ -1,0 +1,79 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Movimientos de Inventario</h1>
+  {% if es_admin %}
+    <a href="{% url 'inventario:movimiento_create' %}" class="btn btn-primary">
+      <i class="fas fa-plus me-1"></i>
+      Nuevo Movimiento
+    </a>
+  {% endif %}
+</div>
+
+{% if es_admin %}
+  <form method="get" class="mb-3">
+    <input type="hidden" name="mostrar_eliminados" value="{% if not mostrar_eliminados %}True{% else %}False{% endif %}">
+    <button type="submit" class="btn btn-sm btn-outline-secondary">
+      {% if mostrar_eliminados %}Ocultar eliminados{% else %}Mostrar eliminados{% endif %}
+    </button>
+  </form>
+{% endif %}
+
+<table class="table table-bordered table-striped table-sm">
+  <thead class="table-light">
+    <tr>
+      <th style="width: 12%;">Fecha</th>
+      <th style="width: 25%;">Elemento</th>
+      <th style="width: 10%;">Tipo</th>
+      <th style="width: 8%;">Cantidad</th>
+      <th style="width: 15%;">Usuario</th>
+      <th style="width: 20%;">Proyecto</th>
+      {% if es_admin %}<th style="width: 10%;">Acciones</th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for movimiento in movimientos %}
+      <tr {% if movimiento.eliminado %}class="table-danger"{% endif %}>
+        {% if movimiento.eliminado %}
+          <td colspan="7">
+            <span class="badge bg-danger">Eliminado</span><br>
+            <strong>Motivo:</strong> {{ movimiento.motivo_eliminacion }}<br>
+            <strong>Fecha:</strong> {{ movimiento.fecha_eliminacion|date:"d/m/Y H:i" }}<br>
+            <strong>Por:</strong> {{ movimiento.usuario_eliminacion.username }}
+            {% if es_admin %}
+              <a href="{% url 'inventario:movimiento_restaurar' movimiento.pk %}" class="btn btn-sm btn-success mt-2">Restaurar</a>
+            {% endif %}
+          </td>
+        {% else %}
+          <td>{{ movimiento.fecha|date:"d/m/Y H:i" }}</td>
+          <td>{{ movimiento.elemento.nombre }}</td>
+          <td>
+            {% if movimiento.tipo == 'entrada' %}
+              <span class="badge bg-success">Entrada</span>
+            {% elif movimiento.tipo == 'salida' %}
+              <span class="badge bg-danger">Salida</span>
+            {% elif movimiento.tipo == 'transferencia' %}
+              <span class="badge bg-info">Transferencia</span>
+            {% else %}
+              <span class="badge bg-warning">Devolución</span>
+            {% endif %}
+          </td>
+          <td>{{ movimiento.cantidad }}</td>
+          <td>{{ movimiento.usuario.username }}</td>
+          <td>{{ movimiento.proyecto|default:"-" }}</td>
+          {% if es_admin %}
+            <td>
+              <a href="{% url 'inventario:movimiento_eliminar' movimiento.pk %}" class="btn btn-sm btn-danger">Eliminar</a>
+            </td>
+          {% endif %}
+        {% endif %}
+      </tr>
+    {% empty %}
+      <tr>
+        <td colspan="7" class="text-center py-4">No hay movimientos registrados.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %} 

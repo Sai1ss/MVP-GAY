@@ -24,5 +24,4 @@ urlpatterns = [
 
     
     path('', include('inventario.urls', namespace='inventario')),
-    path('accounts/signup/', signup, name='signup'),
 ]

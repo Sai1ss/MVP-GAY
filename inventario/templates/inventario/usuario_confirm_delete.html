@@ -1,0 +1,74 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-danger text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Eliminar Usuario
+          </h4>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-danger">
+            <h6>¡Atención!</h6>
+            <p class="mb-0">
+              Esta acción eliminará permanentemente el usuario del sistema. 
+              Esta operación no se puede deshacer.
+            </p>
+          </div>
+          
+          <div class="alert alert-info">
+            <h6>Información del Usuario a Eliminar:</h6>
+            <ul class="mb-0">
+              <li><strong>Usuario:</strong> {{ usuario.username }}</li>
+              <li><strong>Nombre:</strong> {{ usuario.first_name }} {{ usuario.last_name }}</li>
+              <li><strong>Email:</strong> {{ usuario.email|default:"No especificado" }}</li>
+              <li><strong>Estado:</strong> 
+                {% if usuario.is_active %}
+                  <span class="badge bg-success">Activo</span>
+                {% else %}
+                  <span class="badge bg-secondary">Inactivo</span>
+                {% endif %}
+              </li>
+              <li><strong>Grupos:</strong> 
+                {% if usuario.groups.all %}
+                  {% for grupo in usuario.groups.all %}
+                    <span class="badge bg-info me-1">{{ grupo.name }}</span>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted">Sin grupos</span>
+                {% endif %}
+              </li>
+              <li><strong>Fecha de Registro:</strong> {{ usuario.date_joined|date:"d/m/Y H:i" }}</li>
+              <li><strong>Último Acceso:</strong> 
+                {% if usuario.last_login %}
+                  {{ usuario.last_login|date:"d/m/Y H:i" }}
+                {% else %}
+                  <span class="text-muted">Nunca</span>
+                {% endif %}
+              </li>
+            </ul>
+          </div>
+          
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'inventario:usuario_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-1"></i>
+                Cancelar
+              </a>
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash me-1"></i>
+                Eliminar Usuario
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

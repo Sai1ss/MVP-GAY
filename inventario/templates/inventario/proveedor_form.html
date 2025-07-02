@@ -1,6 +1,6 @@
 {% extends 'inventario/base.html' %}
 {% block content %}
-  <h2>Nuevo Proveedor</h2>
+  <h2>{% if is_edit %}Editar Proveedor{% else %}Nuevo Proveedor{% endif %}</h2>
   <form method="post">{% csrf_token %}
     {{ form.non_field_errors }}
     {% for field in form %}
@@ -10,7 +10,7 @@
         <div class="text-danger">{{ field.errors }}</div>
       </div>
     {% endfor %}
-    <button class="btn btn-primary">Guardar</button>
+    <button type="submit" class="btn btn-primary">{% if is_edit %}Guardar Cambios{% else %}Crear Proveedor{% endif %}</button>
     <a href="{% url 'inventario:proveedor_list' %}" class="btn btn-secondary">Cancelar</a>
   </form>
 {% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'inventario/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card">
+    <div class="card-header bg-danger text-white">
+      <h4>Eliminar Movimiento</h4>
+    </div>
+    <div class="card-body">
+      <p>¿Estás seguro que deseas eliminar este movimiento?</p>
+      <ul>
+        <li><strong>Fecha:</strong> {{ movimiento.fecha|date:"d/m/Y H:i" }}</li>
+        <li><strong>Elemento:</strong> {{ movimiento.elemento.nombre }}</li>
+        <li><strong>Tipo:</strong> {{ movimiento.get_tipo_display }}</li>
+        <li><strong>Cantidad:</strong> {{ movimiento.cantidad }}</li>
+        <li><strong>Usuario:</strong> {{ movimiento.usuario.username }}</li>
+      </ul>
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="motivo" class="form-label">Motivo de eliminación:</label>
+          <textarea name="motivo" id="motivo" class="form-control" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger">Eliminar</button>
+        <a href="{% url 'inventario:movimiento_list' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %} 
