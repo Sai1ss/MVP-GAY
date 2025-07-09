@@ -1,0 +1,21 @@
+{% extends 'inventario/base.html' %}
+{% block content %}
+  <h2>Órdenes de Compra</h2>
+  <a href="{% url 'inventario:orden_compra_create' %}" class="btn btn-primary mb-3">Nueva OC</a>
+  <table class="table">
+    <thead><tr><th>ID</th><th>Proveedor</th><th>Estado</th><th>Creada</th><th></th></tr></thead>
+    <tbody>
+      {% for o in ordenes %}
+        <tr>
+          <td>{{ o.id }}</td>
+          <td>{{ o.proveedor }}</td>
+          <td>{{ o.get_status_display }}</td>
+          <td>{{ o.created_at|date:"d/m/Y H:i" }}</td>
+          <td>
+            <a href="{% url 'inventario:orden_compra_detail' o.id %}" class="btn btn-sm btn-info">Ver</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

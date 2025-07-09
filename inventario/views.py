@@ -9,14 +9,14 @@ from .models import (
     Proveedor, ElementoInventario, RecepcionCompra, 
     MovimientoInventario, SolicitudMaterial, AuditoriaInventario, Proyecto,
     Categoria, Etiqueta, ConfiguracionSistema, AsignacionRecurso,
-    crear_movimiento_automatico
+    crear_movimiento_automatico, PurchaseOrder
 )
 from .forms import (
     ProveedorForm, ElementoForm, RecepcionForm, MovimientoInventarioForm,
     SolicitudMaterialForm, AuditoriaInventarioForm, ProyectoForm, SolicitudMaterialEditForm,
-    ConfiguracionSistemaForm, UsuarioForm, AsignacionRecursoForm
+    ConfiguracionSistemaForm, UsuarioForm, AsignacionRecursoForm, PurchaseOrderForm, PurchaseLineItemFormSet
 )
-from .decorators import role_required
+from .decorators import role_required, roles_required
 from django.contrib.auth.forms import UserCreationForm
 from datetime import date, timedelta
 
@@ -94,63 +94,46 @@ def index(request):
     # Filtros por categoría y etiqueta
     categoria_id = request.GET.get('categoria')
     etiqueta_id = request.GET.get('etiqueta')
-    
     if categoria_id:
         elementos = elementos.filter(categoria_id=categoria_id)
-    
     if etiqueta_id:
         elementos = elementos.filter(etiquetas__id=etiqueta_id)
     
+    # Alertas de stock bajo
     alertas = elementos.filter(stock_actual__lt=F('stock_minimo'))
 
-    # Agregar información de precios para cada elemento
+    # Precios promedio / último
     for elemento in elementos:
         recepciones = RecepcionCompra.objects.filter(elemento=elemento).order_by('-fecha')
         if recepciones.exists():
-            # Calcular precio promedio ponderado por cantidad
             total_costo = sum(r.precio_unitario * r.cantidad for r in recepciones)
             total_cantidad = sum(r.cantidad for r in recepciones)
-            elemento.precio_promedio = total_costo / total_cantidad if total_cantidad > 0 else 0
+            elemento.precio_promedio = total_costo / total_cantidad if total_cantidad else 0
             elemento.precio_ultimo = recepciones.first().precio_unitario
             elemento.total_recepciones = recepciones.count()
         else:
-            elemento.precio_promedio = 0
-            elemento.precio_ultimo = 0
+            elemento.precio_promedio = elemento.precio_ultimo = 0
             elemento.total_recepciones = 0
 
-    is_gestor    = request.user.is_authenticated and request.user.groups.filter(name='Gestor de Inventario').exists()
-    is_comprador = request.user.is_authenticated and request.user.groups.filter(name='Comprador').exists()
-    is_admin     = request.user.is_authenticated and request.user.is_superuser
+    # Usuarios sólo si es admin
+    usuarios = []
+    if request.user.is_superuser:
+        usuarios = User.objects.all().prefetch_related('groups')
 
-    usuarios = []   # lista vacía por defecto
-    if is_admin:
-        try:
-            usuarios = User.objects.all().prefetch_related('groups')
-        except Exception as e:
-            # Log aquí si quieres: print("Error al traer usuarios:", e)
-            usuarios = []
-
-    # Obtener todas las categorías y etiquetas para los filtros
     categorias = Categoria.objects.all()
-    etiquetas = Etiqueta.objects.all()
+    etiquetas  = Etiqueta.objects.all()
 
-    # Fechas para alertas de vencimiento
     today = date.today()
-    today_plus_30 = today + timedelta(days=30)
-    today_plus_90 = today + timedelta(days=90)
-
-    return render(request, 'inventario/index.html', {
-        'elementos':    elementos,
-        'alertas':      alertas,
-        'is_gestor':    is_gestor,
-        'is_comprador': is_comprador,
-        'is_admin':     is_admin,
-        'usuarios':     usuarios,
-        'categorias':   categorias,
-        'etiquetas':    etiquetas,
-        'today_plus_30': today_plus_30,
-        'today_plus_90': today_plus_90,
-    })
+    context = {
+        'elementos':      elementos,
+        'alertas':        alertas,
+        'usuarios':       usuarios,
+        'categorias':     categorias,
+        'etiquetas':      etiquetas,
+        'today_plus_30':  today + timedelta(days=30),
+        'today_plus_90':  today + timedelta(days=90),
+    }
+    return render(request, 'inventario/index.html', context)
 
 # ---- Proveedores ----
 
@@ -246,105 +229,90 @@ def recepcion_create(request):
 
 # ---- Logística ----
 @login_required
+@roles_required('Logística', 'Comprador')
 def movimiento_create(request):
-    # Permitir acceso a Logística y Comprador
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Logística', 'Comprador']).exists()):
-        messages.error(request, 'No tienes permisos para crear movimientos.')
-        return redirect('inventario:index')
     form = MovimientoInventarioForm(request.POST or None)
     if form.is_valid():
         movimiento = form.save(commit=False)
         movimiento.usuario = request.user
-        movimiento.origen = 'ajuste_manual'
-        
+        movimiento.origen  = 'ajuste_manual'
+
         # Verificar stock para salidas
         if movimiento.tipo == 'salida' and movimiento.elemento.stock_actual < abs(movimiento.cantidad):
             messages.error(request, 'Stock insuficiente para esta salida.')
             return render(request, 'inventario/movimiento_form.html', {'form': form})
-        
+
         # Crear movimiento usando la función automática
         from .models import crear_movimiento_automatico
         crear_movimiento_automatico(
-            elemento=movimiento.elemento,
-            tipo=movimiento.tipo,
-            cantidad=movimiento.cantidad,
-            usuario=request.user,
-            origen='ajuste_manual',
-            proyecto=movimiento.proyecto,
-            observaciones=movimiento.observaciones
+            elemento      = movimiento.elemento,
+            tipo          = movimiento.tipo,
+            cantidad      = movimiento.cantidad,
+            usuario       = request.user,
+            origen        = 'ajuste_manual',
+            proyecto      = movimiento.proyecto,
+            observaciones = movimiento.observaciones
         )
-        
-        messages.success(request, f'Movimiento manual registrado: {movimiento.get_tipo_display()} de {abs(movimiento.cantidad)} unidades.')
+
+        messages.success(
+            request,
+            f'Movimiento manual registrado: {movimiento.get_tipo_display()} de {abs(movimiento.cantidad)} unidades.'
+        )
         return redirect('inventario:movimiento_list')
-    
+
     return render(request, 'inventario/movimiento_form.html', {'form': form})
 
+
 @login_required
+@roles_required('Logística', 'Comprador')
 def movimiento_eliminar(request, pk):
-    # Permitir acceso a Logística y Comprador
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Logística', 'Comprador']).exists()):
-        messages.error(request, 'No tienes permisos para eliminar movimientos.')
-        return redirect('inventario:movimiento_list')
     movimiento = get_object_or_404(MovimientoInventario, pk=pk)
-    if not request.user.is_superuser:
-        messages.error(request, 'No tienes permisos para eliminar movimientos.')
-        return redirect('inventario:movimiento_list')
     if request.method == 'POST':
-        motivo = request.POST.get('motivo', '')
+        motivo = request.POST.get('motivo', '').strip()
         if motivo:
-            movimiento.eliminado = True
-            movimiento.motivo_eliminacion = motivo
-            movimiento.fecha_eliminacion = timezone.now()
+            movimiento.eliminado           = True
+            movimiento.motivo_eliminacion  = motivo
+            movimiento.fecha_eliminacion   = timezone.now()
             movimiento.usuario_eliminacion = request.user
             movimiento.save()
             messages.success(request, 'Movimiento eliminado correctamente.')
+            return redirect('inventario:movimiento_list')
         else:
             messages.error(request, 'Debe especificar un motivo para la eliminación.')
-        return redirect('inventario:movimiento_list')
+
     return render(request, 'inventario/movimiento_eliminar.html', {'movimiento': movimiento})
 
+
 @login_required
+@roles_required('Logística', 'Comprador')
 def movimiento_restaurar(request, pk):
-    # Permitir acceso a Logística y Comprador
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Logística', 'Comprador']).exists()):
-        messages.error(request, 'No tienes permisos para restaurar movimientos.')
-        return redirect('inventario:movimiento_list')
     movimiento = get_object_or_404(MovimientoInventario, pk=pk)
-    if not request.user.is_superuser:
-        messages.error(request, 'No tienes permisos para restaurar movimientos.')
-        return redirect('inventario:movimiento_list')
-    movimiento.eliminado = False
-    movimiento.motivo_eliminacion = ''
-    movimiento.fecha_eliminacion = None
+    movimiento.eliminado           = False
+    movimiento.motivo_eliminacion  = ''
+    movimiento.fecha_eliminacion   = None
     movimiento.usuario_eliminacion = None
     movimiento.save()
     messages.success(request, 'Movimiento restaurado correctamente.')
     return redirect('inventario:movimiento_list')
 
+
 @login_required
+@roles_required('Logística', 'Comprador')
 def movimiento_list(request):
-    # Permitir acceso a Logística y Comprador
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Logística', 'Comprador']).exists()):
-        messages.error(request, 'No tienes permisos para acceder a los movimientos.')
-        return redirect('inventario:index')
-    mostrar_eliminados = request.GET.get('mostrar_eliminados', 'False') == 'True'
+    mostrar_eliminados = request.GET.get('mostrar_eliminados') == 'True'
     if mostrar_eliminados and request.user.is_superuser:
-        movimientos = MovimientoInventario.objects.select_related('elemento', 'usuario').order_by('-fecha')
+        movimientos = MovimientoInventario.objects.select_related('elemento','usuario').order_by('-fecha')
     else:
-        movimientos = MovimientoInventario.objects.filter(eliminado=False).select_related('elemento', 'usuario').order_by('-fecha')
-    
+        movimientos = MovimientoInventario.objects.filter(eliminado=False).select_related('elemento','usuario').order_by('-fecha')
+
     # Filtros
     elemento_id = request.GET.get('elemento')
-    tipo = request.GET.get('tipo')
-    origen = request.GET.get('origen')
-    proyecto = request.GET.get('proyecto')
+    tipo        = request.GET.get('tipo')
+    origen      = request.GET.get('origen')
+    proyecto    = request.GET.get('proyecto')
     fecha_desde = request.GET.get('fecha_desde')
     fecha_hasta = request.GET.get('fecha_hasta')
-    
+
     if elemento_id:
         movimientos = movimientos.filter(elemento_id=elemento_id)
     if tipo:
@@ -357,28 +325,21 @@ def movimiento_list(request):
         movimientos = movimientos.filter(fecha__date__gte=fecha_desde)
     if fecha_hasta:
         movimientos = movimientos.filter(fecha__date__lte=fecha_hasta)
-    
-    # Obtener elementos para el filtro
+
     elementos = ElementoInventario.objects.all().order_by('nombre')
-    
-    # Estadísticas
-    total_entradas = movimientos.filter(tipo='entrada').count()
-    total_salidas = movimientos.filter(tipo='salida').count()
-    total_ajustes = movimientos.filter(tipo='ajuste').count()
-    
+
     context = {
-        'movimientos': movimientos,
-        'elementos': elementos,
-        'total_entradas': total_entradas,
-        'total_salidas': total_salidas,
-        'total_ajustes': total_ajustes,
+        'movimientos':      movimientos,
+        'elementos':        elementos,
+        'total_entradas':   movimientos.filter(tipo='entrada').count(),
+        'total_salidas':    movimientos.filter(tipo='salida').count(),
+        'total_ajustes':    movimientos.filter(tipo='ajuste').count(),
         'mostrar_eliminados': mostrar_eliminados,
-        'es_admin': request.user.is_superuser,
         'filtros_activos': {
-            'elemento_id': elemento_id,
-            'tipo': tipo,
-            'origen': origen,
-            'proyecto': proyecto,
+            'elemento':    elemento_id,
+            'tipo':        tipo,
+            'origen':      origen,
+            'proyecto':    proyecto,
             'fecha_desde': fecha_desde,
             'fecha_hasta': fecha_hasta,
         }
@@ -386,41 +347,32 @@ def movimiento_list(request):
     return render(request, 'inventario/movimiento_list.html', context)
 
 # ---- Usuario Final ----
+# Crear solicitud — solo Usuario Final
 @login_required
 @role_required('Usuario Final')
 def solicitud_create(request):
     form = SolicitudMaterialForm(request.POST or None)
     if form.is_valid():
-        solicitud = form.save(commit=False)
+        solicitud        = form.save(commit=False)
         solicitud.solicitante = request.user
         solicitud.save()
         messages.success(request, 'Solicitud de material creada exitosamente.')
         return redirect('inventario:solicitud_list')
-    
     return render(request, 'inventario/solicitud_form.html', {'form': form})
 
+# Listar solicitudes — Gestor de Inventario o Usuario Final
 @login_required
+@roles_required('Gestor de Inventario', 'Usuario Final')
 def solicitud_list(request):
-    # Permitir acceso a Usuario Final, Gestor de Inventario y superusuarios
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Usuario Final', 'Gestor de Inventario']).exists()):
-        messages.error(request, 'No tienes permisos para acceder a las solicitudes.')
-        return redirect('inventario:index')
-    
     if request.user.groups.filter(name='Gestor de Inventario').exists() or request.user.is_superuser:
         solicitudes = SolicitudMaterial.objects.all().order_by('-fecha_solicitud')
-        # Filtros para gestores
-        estado = request.GET.get('estado')
-        proyecto = request.GET.get('proyecto')
-        if estado:
-            solicitudes = solicitudes.filter(estado=estado)
-        if proyecto:
-            solicitudes = solicitudes.filter(proyecto__icontains=proyecto)
-        is_gestor = True
     else:
         solicitudes = SolicitudMaterial.objects.filter(solicitante=request.user).order_by('-fecha_solicitud')
-        is_gestor = False
-    return render(request, 'inventario/solicitud_list.html', {'solicitudes': solicitudes, 'is_gestor': is_gestor})
+    return render(request, 'inventario/solicitud_list.html', {
+        'solicitudes': solicitudes
+    })
+
+
 
 @login_required
 @role_required('Gestor de Inventario')
@@ -477,44 +429,40 @@ def solicitud_update(request, pk):
     return render(request, 'inventario/solicitud_edit_form.html', {'form': form, 'solicitud': solicitud})
 
 # ---- Auditor ----
+
 @login_required
+@roles_required('Auditor', 'Gestor de Inventario')
 def auditoria_create(request):
-    # Permitir acceso a Auditores y Gestores de Inventario
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Auditor', 'Gestor de Inventario']).exists()):
-        messages.error(request, 'No tienes permisos para crear auditorías.')
-        return redirect('inventario:index')
     form = AuditoriaInventarioForm(request.POST or None)
     if form.is_valid():
         auditoria = form.save(commit=False)
-        auditoria.auditor = request.user
+        auditoria.auditor      = request.user
         auditoria.stock_sistema = auditoria.elemento.stock_actual
         auditoria.save()
         
-        # Crear movimiento automático si hay diferencia
+        # Si hay diferencia, crear movimiento automático
         if auditoria.diferencia != 0:
-            from .models import crear_movimiento_automatico
-            
-            # Determinar tipo de ajuste
+            # Determinar tipo y observación
             if auditoria.diferencia > 0:
                 tipo_ajuste = 'entrada'
-                observacion = f'Ajuste por auditoría - Stock físico mayor al sistema (+{auditoria.diferencia})'
+                obs = f'Ajuste por auditoría (+{auditoria.diferencia})'
             else:
                 tipo_ajuste = 'salida'
-                observacion = f'Ajuste por auditoría - Stock físico menor al sistema ({auditoria.diferencia})'
+                obs = f'Ajuste por auditoría ({auditoria.diferencia})'
             
-            # Crear el movimiento automático
             crear_movimiento_automatico(
-                elemento=auditoria.elemento,
-                tipo=tipo_ajuste,
-                cantidad=abs(auditoria.diferencia),
-                usuario=request.user,
-                origen='auditoria',
-                observaciones=observacion,
-                auditoria_inventario=auditoria
+                elemento           = auditoria.elemento,
+                tipo               = tipo_ajuste,
+                cantidad           = abs(auditoria.diferencia),
+                usuario            = request.user,
+                origen             = 'auditoria',
+                observaciones      = obs,
+                auditoria_inventario = auditoria
             )
-            
-            messages.warning(request, f'Auditoría completada. Stock ajustado automáticamente. Diferencia: {auditoria.diferencia:+d}')
+            messages.warning(
+                request,
+                f'Auditoría completada. Stock ajustado automáticamente: {auditoria.diferencia:+d}'
+            )
         else:
             messages.success(request, 'Auditoría completada. Stock correcto.')
         
@@ -522,62 +470,51 @@ def auditoria_create(request):
     
     return render(request, 'inventario/auditoria_form.html', {'form': form})
 
-@login_required
-def auditoria_list(request):
-    # Permitir acceso a Auditores y Gestores de Inventario
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Auditor', 'Gestor de Inventario']).exists()):
-        messages.error(request, 'No tienes permisos para acceder a las auditorías.')
-        return redirect('inventario:index')
-    
-    auditorias = AuditoriaInventario.objects.select_related('elemento', 'auditor').order_by('-fecha_auditoria')
-    return render(request, 'inventario/auditoria_list.html', {
-        'auditorias': auditorias,
-        'es_admin': request.user.is_superuser,
-        'es_auditor': request.user.groups.filter(name='Auditor').exists(),
-        'es_gestor': request.user.groups.filter(name='Gestor de Inventario').exists(),
-    })
 
 @login_required
+@roles_required('Auditor', 'Gestor de Inventario')
+def auditoria_list(request):
+    auditorias = AuditoriaInventario.objects.select_related('elemento','auditor')\
+                   .order_by('-fecha_auditoria')
+    return render(request, 'inventario/auditoria_list.html', {
+        'auditorias': auditorias
+    })
+
+
+@login_required
+@roles_required('Auditor', 'Gestor de Inventario')
 def auditoria_edit(request, pk):
-    # Permitir acceso a Auditores y Gestores de Inventario
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Auditor', 'Gestor de Inventario']).exists()):
-        messages.error(request, 'No tienes permisos para editar auditorías.')
-        return redirect('inventario:auditoria_list')
-    
     auditoria = get_object_or_404(AuditoriaInventario, pk=pk)
+    form      = AuditoriaInventarioForm(request.POST or None, instance=auditoria)
     
-    if request.method == 'POST':
-        form = AuditoriaInventarioForm(request.POST, instance=auditoria)
-        if form.is_valid():
-            auditoria_editada = form.save(commit=False)
-            # Recalcular diferencia
-            auditoria_editada.diferencia = auditoria_editada.stock_fisico - auditoria_editada.stock_sistema
-            auditoria_editada.save()
-            
-            # Si hay diferencia, crear movimiento de ajuste
-            if auditoria_editada.diferencia != 0:
-                from .models import crear_movimiento_automatico
-                crear_movimiento_automatico(
-                    elemento=auditoria_editada.elemento,
-                    tipo='ajuste',
-                    cantidad=auditoria_editada.diferencia,
-                    usuario=request.user,
-                    origen='auditoria',
-                    observaciones=f'Ajuste por auditoría - Stock físico: {auditoria_editada.stock_fisico}, Sistema: {auditoria_editada.stock_sistema}',
-                    auditoria_inventario=auditoria_editada
-                )
-                # Actualizar stock del elemento
-                auditoria_editada.elemento.stock_actual = auditoria_editada.stock_fisico
-                auditoria_editada.elemento.save()
-                messages.warning(request, f'Auditoría actualizada. Stock ajustado. Diferencia: {auditoria_editada.diferencia}')
-            else:
-                messages.success(request, 'Auditoría actualizada. Stock correcto.')
-            
-            return redirect('inventario:auditoria_list')
-    else:
-        form = AuditoriaInventarioForm(instance=auditoria)
+    if form.is_valid():
+        aud_editada = form.save(commit=False)
+        # Recalcular y guardar diferencia
+        aud_editada.diferencia = aud_editada.stock_fisico - aud_editada.stock_sistema
+        aud_editada.save()
+        
+        if aud_editada.diferencia != 0:
+            # Crear movimiento de ajuste
+            crear_movimiento_automatico(
+                elemento           = aud_editada.elemento,
+                tipo               = 'ajuste',
+                cantidad           = aud_editada.diferencia,
+                usuario            = request.user,
+                origen             = 'auditoria',
+                observaciones      = f'Ajuste modificado: físico {aud_editada.stock_fisico}, sistema {aud_editada.stock_sistema}',
+                auditoria_inventario = aud_editada
+            )
+            # Sincronizar stock
+            aud_editada.elemento.stock_actual = aud_editada.stock_fisico
+            aud_editada.elemento.save()
+            messages.warning(
+                request,
+                f'Auditoría actualizada. Stock ajustado: {aud_editada.diferencia:+d}'
+            )
+        else:
+            messages.success(request, 'Auditoría actualizada. Stock correcto.')
+        
+        return redirect('inventario:auditoria_list')
     
     return render(request, 'inventario/auditoria_form.html', {
         'form': form,
@@ -585,43 +522,33 @@ def auditoria_edit(request, pk):
         'titulo': 'Editar Auditoría'
     })
 
+
 @login_required
+@roles_required('Auditor', 'Gestor de Inventario')
 def auditoria_eliminar(request, pk):
-    # Permitir acceso a Auditores y Gestores de Inventario
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Auditor', 'Gestor de Inventario']).exists()):
-        messages.error(request, 'No tienes permisos para eliminar auditorías.')
-        return redirect('inventario:auditoria_list')
-    
     auditoria = get_object_or_404(AuditoriaInventario, pk=pk)
     
     if request.method == 'POST':
-        motivo = request.POST.get('motivo', '')
+        motivo = request.POST.get('motivo','').strip()
         if motivo:
-            # Si la auditoría generó un movimiento de ajuste, revertirlo
+            # Si hubo ajuste, revertirlo
             if auditoria.diferencia != 0:
-                # Buscar el movimiento de ajuste generado por esta auditoría
-                movimiento_ajuste = MovimientoInventario.objects.filter(
+                mov = MovimientoInventario.objects.filter(
                     origen='auditoria',
                     auditoria_inventario=auditoria
                 ).first()
-                
-                if movimiento_ajuste:
-                    # Revertir el stock
+                if mov:
                     auditoria.elemento.stock_actual -= auditoria.diferencia
                     auditoria.elemento.save()
-                    # Eliminar el movimiento de ajuste
-                    movimiento_ajuste.delete()
-            
+                    mov.delete()
             auditoria.delete()
             messages.success(request, 'Auditoría eliminada correctamente.')
-        else:
-            messages.error(request, 'Debe proporcionar un motivo para eliminar la auditoría.')
-            return render(request, 'inventario/auditoria_eliminar.html', {'auditoria': auditoria})
-        
-        return redirect('inventario:auditoria_list')
-    
-    return render(request, 'inventario/auditoria_eliminar.html', {'auditoria': auditoria})
+            return redirect('inventario:auditoria_list')
+        messages.error(request, 'Debe proporcionar un motivo para eliminar la auditoría.')
+
+    return render(request, 'inventario/auditoria_eliminar.html', {
+        'auditoria': auditoria
+    })
 
 # ---- Jefe de Producción ----
 @login_required
@@ -701,26 +628,21 @@ def dashboard_proyectos(request):
     })
 
 # ---- Búsqueda para Logística y Comprador ----
+
 @login_required
+@roles_required('Logística', 'Comprador')
 def buscar_elemento(request):
-    # Permitir acceso a Logística y Comprador
-    if not (request.user.is_superuser or 
-            request.user.groups.filter(name__in=['Logística', 'Comprador']).exists()):
-        messages.error(request, 'No tienes permisos para buscar elementos.')
-        return redirect('inventario:index')
-    query = request.GET.get('q', '')
+    query     = request.GET.get('q', '')
     elementos = []
-    
     if query:
         elementos = ElementoInventario.objects.filter(
             Q(nombre__icontains=query) |
             Q(numero_serie__icontains=query) |
             Q(ubicacion__icontains=query)
         )
-    
     return render(request, 'inventario/buscar_elemento.html', {
         'elementos': elementos,
-        'query': query
+        'query':     query
     })
 
 # ===== GESTIÓN DE CATEGORÍAS Y ETIQUETAS =====
@@ -841,13 +763,16 @@ def puede_ver_reportes(user):
         )
     )
 
-@user_passes_test(puede_ver_reportes)
+
+
+@login_required
+@roles_required('Gestor de Inventario', 'Jefe de Producción', 'Gerente de Proyectos')
 def reportes(request):
     # Filtros
     categoria_id = request.GET.get('categoria')
     proveedor_id = request.GET.get('proveedor')
-    stock_bajo = request.GET.get('stock_bajo')
-    vencidos = request.GET.get('vencidos')
+    stock_bajo   = request.GET.get('stock_bajo')
+    vencidos     = request.GET.get('vencidos')
 
     elementos = ElementoInventario.objects.all()
     if categoria_id:
@@ -857,54 +782,60 @@ def reportes(request):
     if stock_bajo == '1':
         elementos = elementos.filter(stock_actual__lt=F('stock_minimo'))
     if vencidos == '1':
-        elementos = elementos.filter(fecha_vencimiento__isnull=False, fecha_vencimiento__lte=date.today())
+        elementos = elementos.filter(
+            fecha_vencimiento__isnull=False,
+            fecha_vencimiento__lte=date.today()
+        )
 
-    # Agregar información de precios para cada elemento
-    for elemento in elementos:
-        recepciones = RecepcionCompra.objects.filter(elemento=elemento).order_by('-fecha')
+    # Precios
+    for e in elementos:
+        recepciones = RecepcionCompra.objects.filter(elemento=e).order_by('-fecha')
         if recepciones.exists():
-            # Calcular precio promedio ponderado por cantidad
-            total_costo = sum(r.precio_unitario * r.cantidad for r in recepciones)
+            total_costo    = sum(r.precio_unitario * r.cantidad for r in recepciones)
             total_cantidad = sum(r.cantidad for r in recepciones)
-            elemento.precio_promedio = total_costo / total_cantidad if total_cantidad > 0 else 0
-            elemento.precio_ultimo = recepciones.first().precio_unitario
-            elemento.total_recepciones = recepciones.count()
+            e.precio_promedio   = total_costo / total_cantidad if total_cantidad else 0
+            e.precio_ultimo     = recepciones.first().precio_unitario
+            e.total_recepciones = recepciones.count()
         else:
-            elemento.precio_promedio = 0
-            elemento.precio_ultimo = 0
-            elemento.total_recepciones = 0
+            e.precio_promedio = e.precio_ultimo = 0
+            e.total_recepciones = 0
 
-    # Análisis de piezas más utilizadas (para Jefe de Producción)
-    movimientos_salida = MovimientoInventario.objects.filter(
-        tipo__in=['salida', 'transferencia']
-    ).values('elemento__nombre').annotate(
-        total_consumo=Sum('cantidad')
-    ).order_by('-total_consumo')[:10]
-
-    # Análisis de consumo por proyecto
-    consumo_por_proyecto = MovimientoInventario.objects.filter(
-        tipo__in=['salida', 'transferencia'],
-        proyecto__isnull=False
-    ).exclude(proyecto='').values('proyecto').annotate(
-        total_consumo=Sum('cantidad')
-    ).order_by('-total_consumo')[:10]
+    # Piezas más utilizadas
+    movimientos_salida = (
+        MovimientoInventario.objects
+        .filter(tipo__in=['salida','transferencia'])
+        .values('elemento__nombre')
+        .annotate(total_consumo=Sum('cantidad'))
+        .order_by('-total_consumo')[:10]
+    )
+    # Consumo por proyecto
+    consumo_por_proyecto = (
+        MovimientoInventario.objects
+        .filter(tipo__in=['salida','transferencia'], proyecto__isnull=False)
+        .exclude(proyecto='')
+        .values('proyecto')
+        .annotate(total_consumo=Sum('cantidad'))
+        .order_by('-total_consumo')[:10]
+    )
 
     categorias = Categoria.objects.all()
     proveedores = Proveedor.objects.all()
 
     return render(request, 'inventario/reportes.html', {
-        'elementos': elementos,
-        'categorias': categorias,
-        'proveedores': proveedores,
+        'elementos':             elementos,
+        'categorias':            categorias,
+        'proveedores':           proveedores,
         'piezas_mas_utilizadas': movimientos_salida,
-        'consumo_por_proyecto': consumo_por_proyecto,
+        'consumo_por_proyecto':  consumo_por_proyecto,
         'filtros': {
             'categoria': categoria_id,
             'proveedor': proveedor_id,
             'stock_bajo': stock_bajo,
-            'vencidos': vencidos,
+            'vencidos':   vencidos,
         }
     })
+
+
 
 # ===== HISTORIAL DE PRECIOS DE COMPRA =====
 
@@ -1421,3 +1352,44 @@ def asignacion_consumir(request, pk):
     return render(request, 'inventario/asignacion_consumir.html', {
         'asignacion': asignacion
     })
+
+
+
+@login_required
+@role_required('Comprador')
+def orden_compra_list(request):
+    ordenes = PurchaseOrder.objects.order_by('-created_at')
+    return render(request, 'inventario/orden_compra_list.html', {'ordenes': ordenes})
+
+@login_required
+@role_required('Comprador')
+def orden_compra_create(request):
+    if request.method == 'POST':
+        form       = PurchaseOrderForm(request.POST)
+        formset    = PurchaseLineItemFormSet(request.POST)
+        if form.is_valid() and formset.is_valid():
+            orden = form.save()
+            formset.instance = orden
+            formset.save()
+            messages.success(request, f"OC #{orden.id} creada correctamente.")
+            return redirect('inventario:orden_compra_list')
+    else:
+        form    = PurchaseOrderForm()
+        formset = PurchaseLineItemFormSet()
+    return render(request, 'inventario/orden_compra_form.html', {'form': form, 'formset': formset})
+
+@login_required
+@role_required('Comprador')
+def orden_compra_detail(request, pk):
+    orden = get_object_or_404(PurchaseOrder, pk=pk)
+    return render(request, 'inventario/orden_compra_detail.html', {'orden': orden})
+
+@login_required
+@role_required('Comprador')
+def orden_compra_receive(request, pk):
+    orden = get_object_or_404(PurchaseOrder, pk=pk)
+    if orden.status == 'PENDING':
+        orden.status = 'RECEIVED'
+        orden.save()
+        messages.success(request, f"OC #{orden.id} marcada como recibida.")
+    return redirect('inventario:orden_compra_detail', pk=pk)

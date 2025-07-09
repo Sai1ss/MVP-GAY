@@ -1,5 +1,5 @@
 from django import forms
-from .models import Proveedor, ElementoInventario, RecepcionCompra, MovimientoInventario, SolicitudMaterial, AuditoriaInventario, Proyecto, Categoria, Etiqueta, ConfiguracionSistema, AsignacionRecurso
+from .models import Proveedor, ElementoInventario, RecepcionCompra, MovimientoInventario, SolicitudMaterial, AuditoriaInventario, Proyecto, Categoria, Etiqueta, ConfiguracionSistema, AsignacionRecurso, PurchaseOrder, PurchaseLineItem
 from django.contrib.auth.models import User
 
 class ProveedorForm(forms.ModelForm):
@@ -247,3 +247,14 @@ class AsignacionRecursoForm(forms.ModelForm):
         if commit:
             asignacion.save()
         return asignacion
+
+class PurchaseOrderForm(forms.ModelForm):
+    class Meta:
+        model  = PurchaseOrder
+        fields = ['proveedor']
+
+PurchaseLineItemFormSet = forms.inlineformset_factory(
+    PurchaseOrder, PurchaseLineItem,
+    fields=('elemento','cantidad'),
+    extra=1, can_delete=True
+)

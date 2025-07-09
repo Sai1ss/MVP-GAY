@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     Proveedor, ElementoInventario, RecepcionCompra, 
     MovimientoInventario, SolicitudMaterial, AuditoriaInventario, Proyecto,
-    Categoria, Etiqueta, ConfiguracionSistema
+    Categoria, Etiqueta, ConfiguracionSistema, PurchaseOrder, PurchaseLineItem
 )
 
 @admin.register(Proveedor)
@@ -75,3 +75,13 @@ class ConfiguracionSistemaAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+    
+class PurchaseLineItemInline(admin.TabularInline):
+    model = PurchaseLineItem
+    extra = 1
+
+@admin.register(PurchaseOrder)
+class PurchaseOrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'proveedor', 'status', 'created_at')
+    list_filter  = ('status', 'proveedor')
+    inlines      = (PurchaseLineItemInline,)

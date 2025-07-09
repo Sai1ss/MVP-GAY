@@ -367,3 +367,46 @@ class AsignacionRecurso(models.Model):
         )
 
 
+# ─── MODELOS PARA ÓRDENES DE COMPRA ──────────────────────────────────
+
+class PurchaseOrder(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING',  'Pendiente'),
+        ('RECEIVED', 'Recibido'),
+    ]
+    proveedor   = models.ForeignKey(Proveedor, on_delete=models.PROTECT, verbose_name="Proveedor")
+    created_at  = models.DateTimeField("Fecha de creación", auto_now_add=True)
+    status      = models.CharField("Estado", max_length=10, choices=STATUS_CHOICES, default='PENDING')
+
+    def __str__(self):
+        return f"OC #{self.id} – {self.get_status_display()}"
+
+class PurchaseLineItem(models.Model):
+    order     = models.ForeignKey(PurchaseOrder, related_name='lines', on_delete=models.CASCADE, verbose_name="Orden")
+    elemento  = models.ForeignKey(ElementoInventario, on_delete=models.PROTECT, verbose_name="Ítem")
+    cantidad  = models.PositiveIntegerField("Cantidad")
+
+    def __str__(self):
+        return f"{self.cantidad} × {self.elemento.numero_serie}"
+
+# ─── SEÑAL: Generar movimiento de inventario al marcar como 'RECEIVED' ────
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=PurchaseOrder)
+def crear_movimientos_al_recibir(sender, instance, created, **kwargs):
+    if not created and instance.status == 'RECEIVED':
+        from .models import crear_movimiento_automatico
+        for linea in instance.lines.all():
+            crear_movimiento_automatico(
+                elemento           = linea.elemento,
+                tipo               = 'entrada',
+                cantidad           = linea.cantidad,
+                usuario            = None,  # si lo quieres saber, habría que pasarlo desde la vista
+                origen             = 'compra',
+                observaciones      = f"Recepción OC #{instance.id}",
+                recepcion_compra   = None,
+                solicitud_material = None,
+                auditoria_inventario = None
+            )
